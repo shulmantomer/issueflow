@@ -7,6 +7,13 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
+/**
+ * Two-stage content-type validator for ticket attachments. Step 1: the
+ * declared content type must be in the whitelist (image/png, image/jpeg,
+ * application/pdf, text/plain). Step 2: the actual bytes must match the
+ * declared type — magic-byte signatures for PNG/JPEG/PDF, strict UTF-8
+ * decoding with no null bytes for text/plain (req 3.3).
+ */
 public final class FileTypeValidator {
 
     private static final byte[] PNG_SIGNATURE =

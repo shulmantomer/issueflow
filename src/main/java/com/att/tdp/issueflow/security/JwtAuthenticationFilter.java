@@ -17,6 +17,12 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Per-request filter: extracts the {@code Bearer} token, validates its
+ * signature and expiry, rejects deny-listed jtis, and populates the
+ * {@code SecurityContextHolder} with an {@link AuthenticatedUser} principal.
+ * On any failure it leaves the context empty so the entry point produces 401.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

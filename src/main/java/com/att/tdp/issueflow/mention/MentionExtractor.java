@@ -5,6 +5,12 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Extracts {@code @username} mentions from comment text via a word-character
+ * regex, returning a {@link java.util.LinkedHashSet} for deterministic dedup
+ * order. Case-insensitive matching against real users happens later in the
+ * service (req 3.6).
+ */
 public final class MentionExtractor {
 
     private static final Pattern MENTION_PATTERN = Pattern.compile("@([A-Za-z0-9_]+)");

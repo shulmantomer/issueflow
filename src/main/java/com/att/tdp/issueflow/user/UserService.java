@@ -17,6 +17,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * User registry CRUD. Enforces case-insensitive username uniqueness, generates
+ * a one-time password when none is provided on create (returned once as
+ * {@code generatedPassword}), and refuses to delete a user who still owns
+ * active projects.
+ */
 @Service
 public class UserService {
 

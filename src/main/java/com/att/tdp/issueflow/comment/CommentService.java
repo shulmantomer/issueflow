@@ -22,6 +22,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Comment CRUD and @-mention resolution. On every create/update the mention
+ * set is recomputed from the comment body and persisted via the
+ * {@code comment_mentions} join table — Hibernate diffs the {@code @ManyToMany}
+ * collection, satisfying req 3.6 (added created, removed deleted).
+ */
 @Service
 public class CommentService {
 

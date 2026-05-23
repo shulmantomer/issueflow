@@ -13,6 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Ticket file attachments. The 10MB cap is enforced by Spring's multipart
+ * configuration; this service runs the double content-type check (declared
+ * type + magic-byte signature) via {@link FileTypeValidator} before
+ * persisting the bytes into {@code attachments.data} (req 3.3).
+ */
 @Service
 public class AttachmentService {
 

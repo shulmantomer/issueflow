@@ -9,6 +9,12 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+/**
+ * {@code @MappedSuperclass} providing {@code created_at} and {@code updated_at}
+ * timestamps via Spring Data JPA auditing ({@code @CreatedDate} /
+ * {@code @LastModifiedDate}). Requires {@code @EnableJpaAuditing} on the
+ * application.
+ */
 @Getter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

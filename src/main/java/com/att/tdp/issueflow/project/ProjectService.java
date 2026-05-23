@@ -16,6 +16,11 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Project CRUD with soft delete. Soft-deleted rows are hidden by Hibernate's
+ * {@code @SQLRestriction} on {@link Project}; admin-only listing and restore
+ * use native queries on {@link ProjectRepository} to bypass that filter.
+ */
 @Service
 public class ProjectService {
 

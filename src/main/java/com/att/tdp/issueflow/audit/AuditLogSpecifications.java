@@ -5,6 +5,12 @@ import com.att.tdp.issueflow.common.enums.AuditActor;
 import com.att.tdp.issueflow.common.enums.AuditEntityType;
 import org.springframework.data.jpa.domain.Specification;
 
+/**
+ * Reusable, composable {@link org.springframework.data.jpa.domain.Specification}
+ * fragments for {@link AuditLog} filtering. Each method returns {@code null}
+ * when its filter param is absent; combined with {@code Specification.allOf},
+ * null predicates are skipped, so any combination of optional filters works.
+ */
 public final class AuditLogSpecifications {
 
     private AuditLogSpecifications() {

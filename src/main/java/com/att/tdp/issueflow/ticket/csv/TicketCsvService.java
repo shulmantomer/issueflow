@@ -26,6 +26,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Ticket CSV export and import. Import is deliberately not
+ * {@code @Transactional} — each row is created by calling
+ * {@link TicketService#create} (a different bean, so the proxy applies),
+ * giving per-row transaction isolation: a bad row rolls back only itself
+ * while valid rows commit (req 3.4 partial success).
+ */
 @Service
 public class TicketCsvService {
 

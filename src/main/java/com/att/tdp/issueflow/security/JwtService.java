@@ -13,6 +13,12 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Issues and parses HS256-signed JWTs. Claims: {@code sub} (username),
+ * {@code uid}, {@code role}, plus a random {@code jti} carried so
+ * {@code /auth/logout} can deny-list the exact token until its natural
+ * expiry.
+ */
 @Service
 public class JwtService {
 

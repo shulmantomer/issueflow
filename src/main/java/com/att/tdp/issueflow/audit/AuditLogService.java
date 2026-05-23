@@ -10,6 +10,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Audit log queries. Combines optional filters (entityType, entityId, action,
+ * actor) via {@code Specification.allOf} — absent filters contribute null
+ * predicates and are skipped, so any combination of filters works cleanly.
+ */
 @Service
 public class AuditLogService {
 

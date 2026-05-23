@@ -8,6 +8,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Hourly purge of expired entries from the JWT deny-list, keeping the
+ * {@code token_denylist} table from growing without bound.
+ */
 @Component
 public class TokenCleanupScheduler {
 

@@ -6,6 +6,12 @@ import com.att.tdp.issueflow.common.enums.AuditActor;
 import com.att.tdp.issueflow.common.enums.AuditEntityType;
 import org.springframework.stereotype.Component;
 
+/**
+ * The production {@link AuditPublisher} — writes each event to the
+ * {@code audit_logs} table. Called within each service's
+ * {@code @Transactional} boundary, so the audit row commits together with
+ * the underlying state change.
+ */
 @Component
 public class PersistentAuditPublisher implements AuditPublisher {
 

@@ -18,6 +18,11 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Ticket-to-ticket blocker relationships. Validates that both tickets exist
+ * and belong to the same project, rejects self-dependencies and duplicates,
+ * and runs an iterative DFS to reject circular dependencies (req 3.2).
+ */
 @Service
 public class DependencyService {
 

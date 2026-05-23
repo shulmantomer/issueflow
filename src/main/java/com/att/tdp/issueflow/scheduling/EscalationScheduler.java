@@ -14,6 +14,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Every minute: promotes the priority of overdue, non-DONE tickets one level
+ * (LOW → MEDIUM → HIGH → CRITICAL); once CRITICAL and still overdue, sets
+ * {@code is_overdue = true}. The repository query excludes fully-escalated
+ * tickets, so the job is idempotent — each escalation event is audited with
+ * {@code actor = SYSTEM} (req 3.7).
+ */
 @Component
 public class EscalationScheduler {
 

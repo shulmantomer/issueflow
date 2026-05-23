@@ -15,6 +15,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Authentication operations — login (issues a JWT), logout (deny-lists the
+ * current jti until natural expiry), and {@code /auth/me} profile lookup.
+ * Login returns the same generic error for missing user and bad password to
+ * avoid username enumeration.
+ */
 @Service
 public class AuthService {
 

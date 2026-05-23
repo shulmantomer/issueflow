@@ -17,6 +17,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+/**
+ * Maps every exception to the project's uniform {@link ErrorResponse} envelope.
+ * Includes a handler for {@code AccessDeniedException}, which
+ * {@code @PreAuthorize} method-security throws from inside the dispatcher —
+ * past the security filter chain's {@code AccessDeniedHandler}, so it must
+ * be mapped here.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

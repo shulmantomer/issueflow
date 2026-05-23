@@ -15,6 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Stateless security configuration: JWT filter chain, CSRF disabled,
+ * {@code BCryptPasswordEncoder}, public access only for {@code POST /users}
+ * (registration), {@code /auth/login}, and Swagger UI; every other endpoint
+ * requires a valid JWT. {@code @EnableMethodSecurity} turns on
+ * {@code @PreAuthorize} for the admin-only routes.
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {

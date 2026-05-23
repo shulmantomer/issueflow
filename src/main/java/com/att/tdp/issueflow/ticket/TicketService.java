@@ -20,6 +20,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * The core ticket business logic. Enforces the strict one-step status workflow
+ * (TODO → IN_PROGRESS → IN_REVIEW → DONE), the DONE-lock, the
+ * dependency-blocks-DONE guard, optimistic locking via {@code @Version}, soft
+ * delete, the {@code is_overdue} reset on manual priority change, and
+ * auto-assignment of unassigned tickets to the least-loaded developer
+ * (tie-broken by user id).
+ */
 @Service
 public class TicketService {
 
