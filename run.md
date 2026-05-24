@@ -47,8 +47,10 @@ docker compose up -d
 > Run with `clean` — a stale compiled test resource can otherwise shadow the
 > active configuration.
 
-40 tests: pure-logic unit tests plus `TestRestTemplate` integration tests
-covering auth, CRUD, optimistic locking, dependency blocking, and CSV import.
+The suite covers auth, CRUD, optimistic locking, dependency blocking, CSV
+import/export round-trip, audit log filtering, auto-assignment, escalation
+rules, comment mention re-evaluation, mention pagination, attachment upload
+validation, and the `isOverdue` JSON-key contract.
 
 ## Seeded users
 

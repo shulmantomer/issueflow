@@ -4,10 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.att.tdp.issueflow.support.AbstractIntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 
 class TicketIntegrationTest extends AbstractIntegrationTest {
 
@@ -35,6 +39,31 @@ class TicketIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(patchTicket(admin, ticketId, Map.of("title", "after done"))
                 .getStatusCode().value()).isEqualTo(409);
+    }
+
+    @Test
+    void serializesIsOverdueWithExactContractKey() {
+        // The README contract publishes "isOverdue". Jackson's boolean-getter
+        // heuristic can silently emit "overdue" instead for a record component
+        // named isOverdue — assert both the POST and GET responses use the
+        // exact contract key.
+        String admin = loginAsAdmin();
+        long projectId = createProject(admin);
+
+        ResponseEntity<JsonNode> created = rest.postForEntity("/tickets",
+                new HttpEntity<>(Map.of("title", "IT Ticket " + uniqueSuffix(),
+                        "status", "TODO", "priority", "LOW", "type", "BUG",
+                        "projectId", projectId), jsonBearer(admin)), JsonNode.class);
+        JsonNode createBody = created.getBody();
+        assertThat(createBody.has("isOverdue")).isTrue();
+        assertThat(createBody.has("overdue")).isFalse();
+
+        long ticketId = createBody.get("id").asLong();
+        ResponseEntity<JsonNode> fetched = rest.exchange("/tickets/" + ticketId,
+                HttpMethod.GET, new HttpEntity<>(bearer(admin)), JsonNode.class);
+        JsonNode getBody = fetched.getBody();
+        assertThat(getBody.has("isOverdue")).isTrue();
+        assertThat(getBody.has("overdue")).isFalse();
     }
 
     @Test

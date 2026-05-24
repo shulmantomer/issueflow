@@ -4,6 +4,7 @@ import com.att.tdp.issueflow.common.enums.TicketPriority;
 import com.att.tdp.issueflow.common.enums.TicketStatus;
 import com.att.tdp.issueflow.common.enums.TicketType;
 import com.att.tdp.issueflow.ticket.Ticket;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 
 public record TicketResponse(
@@ -16,7 +17,7 @@ public record TicketResponse(
         Long projectId,
         Long assigneeId,
         Instant dueDate,
-        boolean isOverdue
+        @JsonProperty("isOverdue") boolean isOverdue
 ) {
     public static TicketResponse from(Ticket ticket) {
         return new TicketResponse(

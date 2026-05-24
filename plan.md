@@ -205,3 +205,68 @@ End-to-end manual verification once implementation is done:
 6. Walk the README contract endpoint-by-endpoint with `curl` (or Swagger): create project → create ticket → add comment with `@developer1` → list mentions → upload PNG attachment → add dependency → try moving ticket to DONE (blocked) → resolve blocker → DONE works → soft-delete project → restore as admin → export tickets CSV → import CSV → check audit log.
 7. Force overdue: insert a ticket with `due_date = now() - 1 day` and watch the scheduler bump priority within one minute; audit log shows `AUTO_ESCALATE` rows.
 8. `./mvnw test` — all tests green, coverage report (Jacoco optional) shows >80% on service layer.
+
+---
+
+## What Changed During Execution and Why
+
+The plan above is the one I started with. Three things diverged during
+implementation; this section reconciles plan with reality so a reviewer can
+follow the actual narrative.
+
+1. **Testcontainers → live Postgres (attempted twice).**
+   Step 1 planned `org.testcontainers:postgresql` for integration tests, and
+   I re-attempted the swap during the review-driven hardening pass. Both
+   attempts hit the same wall: on this Windows + Docker Desktop environment,
+   Testcontainers' JNA-based pipe client cannot reach
+   `npipe://./pipe/dockerDesktopLinuxEngine`, and the fallback
+   `docker_engine` pipe returns a 400 redirect to `docker_cli` (a known
+   Docker Desktop quirk for Linux-engine mode). The Docker CLI works,
+   `docker ps` works, but the Java client errors out. Rather than rely on a
+   workaround that depends on enabling Docker's TCP socket (a user-toggled
+   setting outside this repo), I reverted to the compose-managed Postgres
+   that the assignment prescribes (req 4.2: "Use the provided compose.yml to
+   spin up a local PostgreSQL instance via Docker"). Running tests requires
+   `docker compose up -d` first, documented in `run.md`. The shape of
+   `AbstractIntegrationTest` keeps the swap re-introducible: drop in the
+   `@Testcontainers` annotation + `@Container` field + `@DynamicPropertySource`
+   block on a system where Testcontainers can find Docker, and every
+   integration subclass inherits the change automatically.
+
+2. **Mockito-based unit tests → integration tests where feasible.**
+   Step 15 envisioned a unit-test layer with Mockito over the service classes
+   plus integration tests on top. In practice, almost all service rules are
+   only meaningful in conjunction with the database (status transition rules
+   that read from `ticket_dependencies`, optimistic-lock conflicts, audit log
+   row creation), so the suite is dominated by integration tests that exercise
+   the real query path. The unit tests that remain (`MentionExtractorTest`,
+   `FileTypeValidatorTest`, `TicketStatusTransitionsTest`) cover the pieces
+   that are genuinely stateless. This was a deliberate trade — coverage of
+   real behavior over coverage of mocked behavior.
+
+3. **Client-echoed `version` on PATCH → server-side `@Version` only.**
+   Step 7 originally required clients to echo `version` in the `PATCH
+   /tickets/:id` body. The README contract publishes a PATCH body with no
+   `version` field, so following the plan would have made the implementation
+   incompatible with its own published contract. I kept the server-side
+   `@Version` (which still rejects truly overlapping transactions and
+   surfaces conflicts as `409`) and dropped the DTO field. The known
+   limitation: a stale-read followed by a sequential write would not be
+   caught — accepted, recorded in `DECISIONS.md` row 3.
+
+4. **Coverage goal vs reality.**
+   The ">80% line coverage on service classes" target in Step 15 was a
+   directional goal rather than a contract. The current suite exercises every
+   business rule at the HTTP boundary (status transitions, DONE-immutability,
+   dependency-blocks-DONE, optimistic locking, deny-list logout, CSV partial
+   success, magic-byte file validation, audit log query, auto-assignment with
+   tie-break, escalation rule, comment mention re-evaluation, mentions
+   pagination, CSV export round-trip, attachment upload happy/disallowed/
+   magic-byte-mismatch, and the `isOverdue` JSON contract key). A formal
+   Jacoco gate is intentionally not wired into the build — adding it later
+   is a one-plugin change.
+
+The artifact set (`plan.md`, `Instructions.md`, `prompts.md`, `DECISIONS.md`,
+`README.md`, `run.md`) is intended to tell one consistent story after these
+adjustments. If anything in the code disagrees with what a doc claims, the
+code wins and the doc is wrong — please flag it.

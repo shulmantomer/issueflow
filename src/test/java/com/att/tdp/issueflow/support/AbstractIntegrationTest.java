@@ -18,6 +18,13 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
  * Base class for integration tests. Boots the full Spring context against the
  * PostgreSQL instance from compose.yml (localhost:5432, per application.yaml).
  * Requires `docker compose up -d` before running the test suite.
+ *
+ * <p>An earlier iteration of this base class used Testcontainers to provision a
+ * hermetic Postgres per JVM. That setup was reverted because Testcontainers'
+ * Windows/JNA path cannot reach Docker Desktop's {@code dockerDesktopLinuxEngine}
+ * pipe on this environment, and the {@code docker_engine} fallback returns a
+ * 400 redirect. Using the compose-managed Postgres is also the path the
+ * assignment prescribes (req 4.2).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
