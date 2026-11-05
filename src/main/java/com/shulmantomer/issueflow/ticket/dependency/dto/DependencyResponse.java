@@ -1,0 +1,11 @@
+package com.shulmantomer.issueflow.ticket.dependency.dto;
+
+import com.shulmantomer.issueflow.common.enums.TicketStatus;
+import com.shulmantomer.issueflow.ticket.Ticket;
+
+public record DependencyResponse(Long id, String title, TicketStatus status) {
+
+    public static DependencyResponse from(Ticket ticket) {
+        return new DependencyResponse(ticket.getId(), ticket.getTitle(), ticket.getStatus());
+    }
+}
