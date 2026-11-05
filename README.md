@@ -1,39 +1,137 @@
-<p align="center">
-  <a href="https://spring.io/projects/spring-boot" target="blank"><img src="https://spring.io/img/spring-2.svg" width="200" alt="Spring Logo" /></a>
-</p>
+# IssueFlow
 
-# IssueFlow – Ticket Management Backend Platform
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F?logo=springboot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Docker-336791?logo=postgresql&logoColor=white)
+![JWT](https://img.shields.io/badge/Auth-JWT-black?logo=jsonwebtokens)
 
-> Built with **Claude Opus 4.7** (Claude Code) using a plan-first, file-by-file
-> review workflow. See [`plan.md`](plan.md), [`prompts.md`](prompts.md),
-> [`DECISIONS.md`](DECISIONS.md), and [`Instructions.md`](Instructions.md).
+A REST backend for a lightweight issue tracker — think a small, self-hosted Jira:
+users, projects, tickets, comments, and the plumbing around them (audit trail,
+dependencies, attachments, CSV import/export, automatic escalation and assignment).
 
-## Overview
-IssueFlow is a backend service designed to handle a lightweight project and issue tracking platform.
-The system manages users, projects, tickets (issues), comments on tickets, audit logs, ticket dependencies, attachments, and bulk ticket import/export.
+I built it as a personal project to go deep on production-style Spring Boot:
+strict layering, real transactional rules, concurrency control, background
+jobs, and integration tests against a real PostgreSQL instead of an in-memory DB.
 
-## Functionality
-The system provides the following APIs:
+## Highlights
 
-- **Users API**: Manages user identities behind ticket assignments and comments.
-- **Projects API**: Manages top-level containers that group related tickets.
-- **Tickets API**: Manages the core work items (issues) tracked in the system.
-- **Comments API**: Manages user comments on tickets.
-- **Audit Log API**: Read-only log of all state-changing actions in the system.
-- **Dependencies API**: Manages ticket-to-ticket blocker relationships.
-- **Attachments API**: Manages file attachments on tickets.
-- **Export/Import API**: Supports bulk ticket export and import via CSV.
-- **Soft Delete API**: Tickets and projects are soft-deleted and can be restored by ADMIN users.
-- **Mentions API**: `@username` mentions in comments are validated, persisted, and retrievable per user.
-- **Auto-Escalation**: A background scheduler automatically escalates ticket priority when a `dueDate` is exceeded.
-- **Auto-Assignment**: Tickets without an explicit assignee are automatically assigned to the least-loaded DEVELOPER in the project.
+- **JWT authentication with real logout** — tokens carry a `jti`; logout puts it on a
+  server-side deny-list that an hourly job purges.
+- **Ticket workflow rules** — status moves strictly forward
+  (`TODO → IN_PROGRESS → IN_REVIEW → DONE`), and a `DONE` ticket is immutable.
+- **Dependencies with cycle detection** — a ticket can't be closed while one of its
+  blockers is still open.
+- **Optimistic locking** — `@Version` on tickets and comments; concurrent edits get a
+  clean `409 Conflict`.
+- **Auto-assignment** — unassigned tickets go to the least-loaded developer
+  (ties broken deterministically).
+- **Auto-escalation** — a scheduler bumps the priority of overdue tickets, idempotently,
+  and audits every bump.
+- **Full audit log** — every state change is recorded in the same transaction and is
+  queryable with filters.
+- **Attachments** — 10 MB cap, content-type whitelist *and* magic-byte sniffing, so a
+  client can't lie about the file type.
+- **CSV import/export** — per-row validation with row-level error reporting.
+- **Soft delete + restore** for projects and tickets (admin only).
+- **@mentions** in comments, resolved case-insensitively and listable per user.
 
-## Technical Aspects
-The system is built using Java 21 or Java 25 with Spring Boot 3 or Spring Boot 4, leveraging its robust framework for creating RESTful APIs. Data persistence is managed using PostgreSQL via Spring Data JPA (Hibernate).
+## Tech Stack
+
+| Layer        | Choice                                             |
+|--------------|----------------------------------------------------|
+| Language     | Java 21 (also runs on JDK 25)                      |
+| Framework    | Spring Boot 3.4 — Web, Validation, Security, Data JPA |
+| Database     | PostgreSQL (via Docker Compose)                    |
+| Auth         | JJWT 0.12                                          |
+| API docs     | springdoc-openapi (Swagger UI)                     |
+| CSV          | Apache Commons CSV                                 |
+| Testing      | JUnit 5, Spring Boot Test, `TestRestTemplate`      |
+
+## Project Structure
+
+```
+src/main/java/com/shulmantomer/issueflow
+├── auth/         login / logout
+├── user/         user management
+├── project/      projects, soft delete, workload
+├── ticket/       tickets, status transitions, auto-assignment
+│   ├── attachment/   uploads + file-type validation
+│   ├── csv/          import / export
+│   └── dependency/   blocker relationships + cycle detection
+├── comment/      comments
+├── mention/      @mention extraction and lookup
+├── audit/        persistent audit log + filtering
+├── scheduling/   auto-escalation, token cleanup
+├── security/     JWT filter, deny-list, error handlers
+├── config/       Spring Security configuration
+├── exception/    domain exceptions + global handler
+└── common/       base entities, enums, audit publisher
+```
+
+Every module follows the same shape: `Controller → Service (@Transactional) → Repository`,
+with Java records as request/response DTOs — entities never leave the service layer.
+
+## Getting Started
+
+**Prerequisites:** Java 21+ and Docker. No Maven install needed — the repo ships the Maven wrapper.
+
+```bash
+# 1. start PostgreSQL
+docker compose up -d
+
+# 2. run the app
+./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
+```
+
+- API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+The schema is rebuilt and reseeded on every startup. Seeded users all use the
+password **`password123`**:
+
+| Username                 | Role      |
+|--------------------------|-----------|
+| `admin1`, `admin2`       | ADMIN     |
+| `developer1` – `developer4` | DEVELOPER |
+
+Log in with `POST /auth/login`, then send `Authorization: Bearer <accessToken>` on
+every request. `POST /users` (registration) is the only public endpoint.
+
+More detail in [`run.md`](run.md).
+
+## Running the Tests
+
+```bash
+docker compose up -d
+./mvnw clean test
+```
+
+The suite combines pure unit tests (status transitions, mention parsing, file-type
+detection) with HTTP-level integration tests against the real database — auth,
+CRUD, optimistic locking, dependency blocking, CSV round-trips, audit filtering,
+auto-assignment, escalation and attachment validation.
+
+## Design Decisions
+
+Several behaviours weren't obvious up front — how logout should work with stateless
+tokens, what "the least-loaded developer" means, which HTTP status an illegal
+transition should return, and so on. Each one is written down with its trade-off in
+[`DECISIONS.md`](DECISIONS.md).
+
+## How I Built It
+
+I used **Claude Code** as a pair-programmer, with a plan-first workflow: write the
+plan, lock the ambiguous decisions, then implement one step at a time — reviewing
+every file and running the build and tests after each step. The process is
+documented in:
+
+- [`plan.md`](plan.md) — the step-by-step implementation plan, and what changed along the way
+- [`Instructions.md`](Instructions.md) — the coding standards and workflow rules I set
+- [`prompts.md`](prompts.md) — the main prompts, grouped by phase
 
 ---
 
-## APIs
+## API Reference
 
 ### Users APIs
 
@@ -156,47 +254,3 @@ Tickets and projects support **soft delete** only — deleted records are hidden
 
 ---
 
-## Jump Start
-For your convenience, `compose.yml` includes a PostgreSQL DB and the app is already configured to connect to it.
-
-Document your exact setup, build, and run steps in `run.md` (install dependencies, start the database, build the project, run the application, and run the tests).
-
-## Description
-
-[Spring Boot](https://spring.io/projects/spring-boot) Java starter project. Supports **Java 21** or **Java 25** with **Spring Boot 3** or **Spring Boot 4**.
-
-## Build
-
-```bash
-# using Maven wrapper
-$ ./mvnw clean package
-```
-
-## Running the app
-
-```bash
-# run with Maven
-$ ./mvnw spring-boot:run
-
-# run the packaged jar
-$ java -jar target/issueflow-*.jar
-```
-
-## Test
-
-```bash
-# run all tests (Maven)
-$ ./mvnw test
-```
-
-## AI & Agents
-
-We encourage you to use AI during the process. Document how you used the agent and add all relevant files (skills, instructions, plan, etc.).
-
-Add the main and relevant prompts that show your interaction with the agents in a `prompts.md` file.
-
----
-
-## License
-
-This project is [MIT licensed](LICENSE).
